@@ -437,6 +437,61 @@
           alert('Failed to send order to Telegram. Please try again.');
         }
       }
+        // Send order to bot via Telegram sendData(), or HTTP fallback when launched from attachment menu
+        function submitOrder(ev) {
+          ev.preventDefault();
+          if (!tg) {
+            alert('Open this Mini App from Telegram.');
+            return;
+          }
+
+          const customer = {
+            name: document.getElementById('name').value.trim(),
+            phone: safePhone(document.getElementById('phone').value),
+            comment: document.getElementById('comment').value.trim(),
+          };
+
+          const payload = {
+            source: 'raviosta-mini-app',
+            timestamp: new Date().toISOString(),
+            user: tg.initDataUnsafe?.user || null,
+            items: currentOrder.map(({id,name,price,quantity}) => ({ id, name, price, quantity })),
+            total: totalPrice(),
+            customer,
+            location: userLocation,
+          };
+
+          const afterSuccess = () => {
+            closeOrderModal();
+            successModal.classList.remove('hidden'); successModal.classList.add('flex');
+            currentOrder = []; updateOrderSummary(); orderForm.reset(); userLocation = null; locationStatus.textContent = 'Not shared';
+          };
+
+          try {
+            if (tg.initDataUnsafe?.chat_type === 'sender') {
+              // Attachment menu launch: send to backend fallback
+              fetch('/raviosta/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
+              }).then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+              }).then(json => {
+                if (json?.ok) afterSuccess(); else throw new Error('Server rejected order');
+              }).catch(() => {
+                tg.showAlert?.('Failed to send order. Please try again.');
+              });
+            } else {
+              // Bot chat context: use sendData()
+              tg.sendData(JSON.stringify(payload));
+              afterSuccess();
+            }
+          } catch (e) {
+            tg.showAlert?.('Unexpected error. Please try again.');
+          }
+        }
 
       function init() {
         renderMenuItems();
