@@ -468,6 +468,13 @@
           };
 
           try {
+            // Debug chat_type (first option)
+            if (!window.__raviostaDebugOnce) {
+                window.__raviostaDebugOnce = true;
+                const chatType = tg.initDataUnsafe?.chat_type ?? 'undefined';
+                console.log('[Raviosta] tg.initDataUnsafe.chat_type =', chatType, tg.initDataUnsafe);
+                tg.showAlert?.(`chat_type: ${chatType}`);
+            }
             if (tg.initDataUnsafe?.chat_type === 'sender') {
               // Attachment menu launch: send to backend fallback
               fetch('/raviosta/order', {
