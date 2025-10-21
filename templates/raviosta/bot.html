@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Raviosta Kitchen • Telegram Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  {% load static %}
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
@@ -47,13 +48,7 @@
 
       <main class="p-4 pb-28">
         <div class="mb-4">
-          <div class="flex space-x-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            <button class="category-btn px-5 py-2.5 text-sm font-semibold text-white rounded-full whitespace-nowrap shadow" style="background: var(--primary-color)" data-category="all">All</button>
-            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="appetizers">Appetizers</button>
-            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="main">Main</button>
-            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="desserts">Desserts</button>
-            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="drinks">Drinks</button>
-          </div>
+          <div id="category-bar" class="flex space-x-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide"></div>
         </div>
 
         <div id="menu-items" class="grid grid-cols-2 gap-x-4 gap-y-6"></div>
@@ -160,28 +155,103 @@
         tg.expand(); // attempt to expand to full height
       }
 
-      // Apply Telegram theme to CSS variables
-      function applyTelegramTheme() {
-        const tp = tg?.themeParams || {};
+      // Enforce a static theme (ignore Telegram theme changes)
+      function enforceStaticTheme() {
         const root = document.documentElement;
-        if (tp.bg_color) root.style.setProperty('--bg', tp.bg_color);
-        if (tp.text_color) root.style.setProperty('--fg', tp.text_color);
-        if (tp.hint_color) root.style.setProperty('--muted', tp.hint_color);
-        if (tp.button_color) root.style.setProperty('--primary-color', tp.button_color);
+        root.style.setProperty('--bg', '#ffffff');       // white background
+        root.style.setProperty('--fg', '#1f2937');       // text color
+        root.style.setProperty('--card', '#ffffff');     // card background
+        root.style.setProperty('--muted', '#6b7280');    // secondary text
+        root.style.setProperty('--primary-color', '#ff694b'); // brand color
       }
-      applyTelegramTheme();
+      enforceStaticTheme();
+      // If Telegram notifies a theme change, keep our static theme
+      if (tg?.onEvent) {
+        tg.onEvent('themeChanged', enforceStaticTheme);
+      }
 
-      // Menu data (example products)
-      const menuItems = [
-        { id: 1, name: 'Plov', description: 'Rice with lamb, carrots, spices', price: 35000, category: 'main', image: 'https://images.unsplash.com/photo-1563379091339-03246963d96f?auto=format&fit=crop&w=500&q=80' },
-        { id: 2, name: 'Samsa', description: 'Baked pastry with meat and onions', price: 8000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=500&q=80' },
-        { id: 3, name: 'Shashlik', description: 'Grilled skewered meat', price: 28000, category: 'main', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=80' },
-        { id: 4, name: 'Lagman', description: 'Noodles with vegetables and meat', price: 25000, category: 'main', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=500&q=80' },
-        { id: 5, name: 'Manti', description: 'Steamed dumplings', price: 22000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1606755962773-d324e74534a2?auto=format&fit=crop&w=500&q=80' },
-        { id: 6, name: 'Chak-Chak', description: 'Honey dessert with fried dough', price: 15000, category: 'desserts', image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=500&q=80' },
-        { id: 7, name: 'Green Tea', description: 'Traditional green tea', price: 5000, category: 'drinks', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=500&q=80' },
-        { id: 8, name: 'Non Bread', description: 'Traditional round bread', price: 4000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&q=80' },
-      ];
+      // Menu data from provided JSON (fake images for now)
+      const MENU_DATA = { "categories": [
+        { "russian": "Равиоли", "uzbek": "Raviolilar", "english": "Ravioli", "items": [
+          { "russian": "Ravioli Rafael (4 сыра)", "uzbek": "Ravioli Rafael (4 ta pishloq bilan)", "english": "Ravioli Rafael (4 cheese)", "price": 62900, "currency": "UZS" },
+          { "russian": "Ravioli Michelangelo (с курицей)", "uzbek": "Ravioli Michelangelo (tovuq bilan)", "english": "Ravioli Michelangelo (with chicken)", "price": 59900, "currency": "UZS" },
+          { "russian": "Ravioli al salmone (с лососем)", "uzbek": "Ravioli al salmone (losos bilan)", "english": "Ravioli al salmone (with salmon)", "price": 69900, "currency": "UZS" },
+          { "russian": "Ravioli Donatello (с телятиной)", "uzbek": "Ravioli Donatello (mol go‘shti bilan)", "english": "Ravioli Donatello (with veal)", "price": 59900, "currency": "UZS" },
+          { "russian": "Ravioli Leonardo (с шпинат и рикотто)", "uzbek": "Ravioli Leonardo (ismaloq va rikotta bilan)", "english": "Ravioli Leonardo (with spinach and ricotta)", "price": 59900, "currency": "UZS" }
+        ]},
+        { "russian": "Пасты", "uzbek": "Pastalar", "english": "Pasta", "items": [
+          { "russian": "Spaghetti bolognese (с мясом)", "uzbek": "Spagetti Bolognese (go‘sht bilan)", "english": "Spaghetti Bolognese (with meat)", "price": 59900, "currency": "UZS" },
+          { "russian": "Spaghetti Carbonara (с копченной говядиной)", "uzbek": "Spagetti Carbonara (tutunli mol go‘shti bilan)", "english": "Spaghetti Carbonara (with smoked beef)", "price": 79900, "currency": "UZS" },
+          { "russian": "Tagliatelle Quadro Formaggio (4 сыра)", "uzbek": "Tagliatelle Quadro Formaggio (4 ta pishloq bilan)", "english": "Tagliatelle Quadro Formaggio (4 cheese)", "price": 76900, "currency": "UZS" },
+          { "russian": "Tagliatelle with Alfredo (с курицей и грибами)", "uzbek": "Tagliatelle Alfredo (tovuq va qo‘ziqorin bilan)", "english": "Tagliatelle with Alfredo (with chicken and mushrooms)", "price": 69900, "currency": "UZS" },
+          { "russian": "Tagliatelle with Pesto (с базиликом)", "uzbek": "Tagliatelle Pesto (rayhon bilan)", "english": "Tagliatelle with Pesto (with basil)", "price": 59900, "currency": "UZS" }
+        ]},
+        { "russian": "Супы", "uzbek": "Sho‘rvalar", "english": "Soups", "items": [
+          { "russian": "Грибной Крем-суп", "uzbek": "Qo‘ziqorinli krem sho‘rva", "english": "Mushroom cream soup", "price": 61900, "currency": "UZS" },
+          { "russian": "Клубничный суп", "uzbek": "Qulupnayli sho‘rva", "english": "Strawberry soup", "price": 72900, "currency": "UZS" },
+          { "russian": "Страчателло суп", "uzbek": "Strachatella sho‘rva", "english": "Stracciatella soup", "price": 49900, "currency": "UZS" },
+          { "russian": "Томатний суп", "uzbek": "Pomidorli sho‘rva", "english": "Tomato soup", "price": 79900, "currency": "UZS" },
+          { "russian": "Тыквенний суп", "uzbek": "Qovoqli sho‘rva", "english": "Pumpkin soup", "price": 45900, "currency": "UZS" }
+        ]},
+        { "russian": "Пицца", "uzbek": "Pitsa", "english": "Pizza", "items": [
+          { "russian": "Пицца Диабло", "uzbek": "Pitsa Diablo", "english": "Pizza Diablo", "price": 72900, "currency": "UZS" },
+          { "russian": "Пицца Куаттро Стаджони", "uzbek": "Pitsa Quattro Stagioni", "english": "Pizza Quattro Stagioni", "price": 79900, "currency": "UZS" },
+          { "russian": "Пицца Кватро Формаджи", "uzbek": "Pitsa Quattro Formaggi", "english": "Pizza Quattro Formaggi", "price": 99900, "currency": "UZS" },
+          { "russian": "Пицца Маргарита", "uzbek": "Pitsa Margarita", "english": "Pizza Margherita", "price": 64900, "currency": "UZS" },
+          { "russian": "Пицца Полло аль Фунги", "uzbek": "Pitsa Pollo al Fungi", "english": "Pizza Pollo al Fungi", "price": 70900, "currency": "UZS" },
+          { "russian": "Пицца Равиоста", "uzbek": "Pitsa Raviosta", "english": "Pizza Raviosta", "price": 95900, "currency": "UZS" },
+          { "russian": "Пицца Цезарь", "uzbek": "Pitsa Sezar", "english": "Pizza Caesar", "price": 72900, "currency": "UZS" }
+        ]},
+        { "russian": "Салаты", "uzbek": "Salatlar", "english": "Salads", "items": [
+          { "russian": "греческий класико", "uzbek": "Gretsiya klassik salati", "english": "Greek Classic Salad", "price": 35900, "currency": "UZS" },
+          { "russian": "Капрезе классико", "uzbek": "Kapreze klassik salati", "english": "Caprese Classic", "price": 55900, "currency": "UZS" },
+          { "russian": "Панцанелла", "uzbek": "Pantsanella", "english": "Panzanella", "price": 30900, "currency": "UZS" },
+          { "russian": "Равиоста салат", "uzbek": "Raviosta salati", "english": "Raviosta Salad", "price": 90900, "currency": "UZS" },
+          { "russian": "Тоскана салат", "uzbek": "Toskana salati", "english": "Toscana Salad", "price": 60900, "currency": "UZS" },
+          { "russian": "Цезар салать", "uzbek": "Sezar salati", "english": "Caesar Salad", "price": 40900, "currency": "UZS" }
+        ]},
+        { "russian": "Десерт", "uzbek": "Desert", "english": "Dessert", "items": [
+          { "russian": "Тирамису от Шефа", "uzbek": "Shef Tiramisu", "english": "Tiramisu by Chef", "price": 65900, "currency": "UZS" }
+        ]},
+        { "russian": "Напитки", "uzbek": "Ichimliklar", "english": "Drinks", "items": [
+          { "russian": "«Рубиновая Свежесть»", "uzbek": "«Rubin Yangiligi»", "english": "Ruby Freshness", "price": 10000, "currency": "UZS" }
+        ]}
+      ]};
+
+      const LANG = 'english';
+      const FALLBACK_IMG = "{% static 'raviosta/ravioli.svg' %}";
+      const CATEGORY_IMAGES = {
+        'ravioli': '{% static "raviosta/ravioli.svg" %}',
+        'pasta': '{% static "raviosta/pasta.svg" %}',
+        'soups': '{% static "raviosta/soup.svg" %}',
+        'pizza': '{% static "raviosta/pizza.svg" %}',
+        'salads': '{% static "raviosta/salad.svg" %}',
+        'dessert': '{% static "raviosta/dessert.svg" %}',
+        'drinks': '{% static "raviosta/drinks.svg" %}',
+      };
+
+      const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      const CATEGORIES = MENU_DATA.categories.map(cat => ({ slug: slugify(cat[LANG]), label: cat[LANG] }));
+
+      let menuItems = []; // flattened
+      (function buildMenu(){
+        let id = 1;
+        MENU_DATA.categories.forEach(cat => {
+          const slug = slugify(cat[LANG]);
+          cat.items.forEach(it => {
+            const img = CATEGORY_IMAGES[slug] || FALLBACK_IMG;
+            menuItems.push({
+              id: id++,
+              name: it[LANG],
+              description: '',
+              price: it.price,
+              category: slug,
+              image: img,
+            });
+          });
+        });
+      })();
+
 
       // State
       let currentOrder = [];
@@ -200,7 +270,8 @@
       const orderForm = document.getElementById('order-form');
       const modalOrderSummary = document.getElementById('modal-order-summary');
       const modalTotalElement = document.getElementById('modal-total');
-      const categoryButtons = document.querySelectorAll('.category-btn');
+  const categoryBar = document.getElementById('category-bar');
+  let categoryButtons; // will be set after render
       const orderSummary = document.getElementById('order-summary');
       const orderItemsList = document.getElementById('order-items-list');
       const cartBadge = document.getElementById('cart-badge');
@@ -208,6 +279,27 @@
       const cartTotal = document.getElementById('cart-total');
       const locationStatus = document.getElementById('location-status');
       const shareLocationBtn = document.getElementById('share-location');
+
+      // Render category buttons
+      function renderCategoryButtons() {
+        categoryBar.innerHTML = '';
+        const allBtn = document.createElement('button');
+        allBtn.className = 'category-btn px-5 py-2.5 text-sm font-semibold text-white rounded-full whitespace-nowrap shadow';
+        allBtn.dataset.category = 'all';
+        allBtn.style.background = 'var(--primary-color)';
+        allBtn.textContent = 'All';
+        categoryBar.appendChild(allBtn);
+
+        CATEGORIES.forEach(c => {
+          const btn = document.createElement('button');
+          btn.className = 'category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow';
+          btn.dataset.category = c.slug;
+          btn.textContent = c.label;
+          categoryBar.appendChild(btn);
+        });
+
+        categoryButtons = document.querySelectorAll('.category-btn');
+      }
 
       // Render products
       function renderMenuItems() {
@@ -225,8 +317,19 @@
               <h3 class="font-semibold text-md truncate">${item.name}</h3>
               <p class="text-sm" style="color: var(--muted)">${item.price.toLocaleString()} so'm</p>
               <div class="mt-3 grid grid-cols-3 gap-2 items-center">
-                <button class="dec border rounded-lg py-1" data-id="${item.id}">-</button>
-                <button class="add-to-cart col-span-2 px-3 py-2 text-white rounded-lg" style="background: var(--primary-color)" data-id="${item.id}">Add to Cart</button>
+                <button
+                  class="dec border rounded-lg py-1"
+                  data-id="${item.id}"
+                  onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180,easing:'ease-out'})"
+                >-</button>
+                <button
+                  class="add-to-cart col-span-2 px-2 py-1 text-xs text-white rounded-md transition-transform active:scale-95 flex items-center justify-center gap-1"
+                  style="background: var(--primary-color)"
+                  data-id="${item.id}"
+                  onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180,easing:'ease-out'}); if(!this.dataset.added){ this.dataset.added='1'; this.style.background='#22c55e'; this.innerHTML='<span class=\'material-symbols-outlined\' style=\'font-size:18px\'>check</span> Added'; }"
+                >
+                  Add
+                </button>
               </div>
             </div>`;
           menuItemsContainer.appendChild(el);
@@ -469,12 +572,12 @@
 
           try {
             // Debug chat_type (first option)
-            if (!window.__raviostaDebugOnce) {
+            /* if (!window.__raviostaDebugOnce) {
                 window.__raviostaDebugOnce = true;
                 const chatType = tg.initDataUnsafe?.chat_type ?? 'undefined';
                 console.log('[Raviosta] tg.initDataUnsafe.chat_type =', chatType, tg.initDataUnsafe);
                 tg.showAlert?.(`chat_type: ${chatType}`);
-            }
+            } */
             if (tg.initDataUnsafe?.chat_type === 'sender') {
               // Attachment menu launch: send to backend fallback
               fetch('/raviosta/order', {
@@ -501,6 +604,7 @@
         }
 
       function init() {
+        renderCategoryButtons();
         renderMenuItems();
         setupEvents();
         updateOrderSummary();

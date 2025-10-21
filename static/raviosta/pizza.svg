@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="32" fill="#FFF1E6"/>
+  <circle cx="256" cy="280" r="140" fill="#FFD166"/>
+  <path d="M256 140l120 240H136L256 140z" fill="#06D6A0"/>
+  <circle cx="256" cy="280" r="18" fill="#EF476F"/>
+  <circle cx="316" cy="310" r="14" fill="#EF476F"/>
+  <circle cx="196" cy="310" r="14" fill="#EF476F"/>
+  <text x="256" y="460" text-anchor="middle" font-family="Poppins, Arial" font-size="28" fill="#FF694B">Pizza</text>
+</svg>
