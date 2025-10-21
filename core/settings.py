@@ -25,21 +25,11 @@ SECRET_KEY = 'django-insecure-@@15_)yu@*k$bv08a%t*wa(tcks^h06qdwtj(^t7z^1_9w32&^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['silvara.uz', 'www.silvara.uz', 'fillright.silvara.uz', 'www.fillright.silvara.uz']
-
-# Tell Django where to find the host patterns
-ROOT_HOSTCONF = 'core.hosts'  # Change 'core' to your project name
-
-# Set the default subdomain (this should match a name in hosts.py)
-DEFAULT_HOST = 'www'
-
-TELEGRAM_BOT_TOKEN = "7602818612:AAGxS78mWnKjcT7JRlNKqyzf19PzaSQqelA"
-WEBHOOK_URL = f"https://fillright.silvara.uz/webhook/{TELEGRAM_BOT_TOKEN}/"
+ALLOWED_HOSTS = ['silvara.uz', 'www.silvara.uz', ] # 'fillright.silvara.uz', 'www.fillright.silvara.uz'
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django_hosts', # for andling subdomain
     
     'django.contrib.admin',
     'django.contrib.auth',
@@ -54,7 +44,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django_hosts.middleware.HostsRequestMiddleware', # for andling subdomain
     
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
