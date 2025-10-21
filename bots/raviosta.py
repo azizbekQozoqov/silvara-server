@@ -9,7 +9,4 @@ bot = TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    markup = types.ReplyKeyboardMarkup()
-    webapp = types.WebAppInfo("url='https://silvara.uz/miniapps/raviosta/'")
-    markup.add(types.KeyboardButton("Open MiniApp", web_app=webapp))
-    bot.send_message(message.chat.id, "Welcome!", reply_markup=markup)
+    bot.send_message(message.chat.id, "Welcome!")

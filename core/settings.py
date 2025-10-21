@@ -13,12 +13,21 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import logging
+from logging.handlers import RotatingFileHandler
 
 # load environment variables from .env file
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = BASE_DIR / 'logs'
+# Ensure logs directory exists
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    # If the directory can't be created for some reason, fall back to project root
+    LOG_DIR = BASE_DIR
 
 
 # Quick-start development settings - unsuitable for production
@@ -48,7 +57,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    
+    'core.middleware.RequestLoggingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -133,41 +142,73 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Logging configuration
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO').upper()
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{asctime} - {levelname} - {name} - {message}',
-            'style': '{',
+            'format': '%(asctime)s | %(levelname)s | %(name)s | %(process)d | %(threadName)s | %(message)s',
         },
         'simple': {
-            'format': '{levelname} - {message}',
-            'style': '{',
+            'format': '%(levelname)s | %(message)s',
+        },
+        'request': {
+            'format': '%(asctime)s | %(levelname)s | %(name)s | %(message)s',
         },
     },
     'handlers': {
-        'file': {
-            'level': 'ERROR',
-            'class': 'logging.FileHandler',
-            'filename': 'django_errors.log',
-            'formatter': 'verbose',
-        },
         'console': {
-            'level': 'ERROR',
+            'level': LOG_LEVEL,
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
+        'file': {
+            'level': LOG_LEVEL,
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'django.log'),
+            'maxBytes': 5 * 1024 * 1024,  # 5MB
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
+        'errors_file': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(LOG_DIR / 'errors.log'),
+            'maxBytes': 5 * 1024 * 1024,
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
+        # Root logger
+        '': {
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
+        },
+        # Django internals
         'django': {
-            'handlers': ['file', 'console'],
-            'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
         },
         'django.request': {
-            'handlers': ['file', 'console'],
+            'handlers': ['errors_file', 'console'],
             'level': 'ERROR',
+            'propagate': False,
+        },
+        # Project app loggers
+        'silvara': {
+            'handlers': ['console', 'file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        # Third-party libraries (reduce noise)
+        'telebot': {
+            'handlers': ['console', 'file'],
+            'level': os.getenv('TELEBOT_LOG_LEVEL', 'WARNING').upper(),
             'propagate': False,
         },
     },
