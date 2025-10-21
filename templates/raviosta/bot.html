@@ -381,7 +381,6 @@
         document.getElementById('success-msg').textContent = t('order_received');
         document.getElementById('close-success').textContent = t('ok');
       }
-    }
 
       const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
       function getCategories(lang) {
@@ -468,7 +467,7 @@
             btn.style.background = 'var(--primary-color)';
             currentCategory = btn.getAttribute('data-category');
             renderMenuItems();
-              applyTranslations();
+            // no applyTranslations here to avoid resetting dynamic texts like location status
           });
         });
       }
@@ -585,6 +584,7 @@
           renderCategoryButtons();
           bindCategoryEvents();
           renderMenuItems();
+          applyTranslations();
           // Update active lang button styles
           document.querySelectorAll('#lang-switcher .lang-btn').forEach(b => {
             b.style.background = (b.dataset.lang === currentLang) ? 'var(--primary-color)' : '';
@@ -651,12 +651,12 @@
         modalOrderSummary.innerHTML = '';
         let total = 0;
         currentOrder.forEach((item) => {
-          const t = item.price * item.quantity; total += t;
+          const lineTotal = item.price * item.quantity; total += lineTotal;
           const el = document.createElement('div');
           el.className = 'flex justify-between py-2 border-b';
           el.innerHTML = `
             <div><span class="font-medium">${item.quantity}x ${item.name}</span><p class="text-xs text-gray-500">${item.description}</p></div>
-            <span class="font-medium">${t.toLocaleString()} so'm</span>`;
+            <span class="font-medium">${lineTotal.toLocaleString()} so'm</span>`;
           modalOrderSummary.appendChild(el);
         });
         modalTotalElement.textContent = `${total.toLocaleString()} so'm`;
