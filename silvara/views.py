@@ -13,6 +13,12 @@ def index(request):
     logger.debug("Rendering index page")
     return render(request, 'silvara/index.html')
 
+
+def raviosta_bot(request):
+    """Render the Telegram Mini App page for Raviosta."""
+    logger.debug("Rendering raviosta/bot.html")
+    return render(request, 'raviosta/bot.html')
+
 # Webhook view for Telegram bot
 @csrf_exempt
 def webhook(request):

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Raviosta Kitchen • Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <style type="text/tailwindcss">
+      :root {
+        --primary-color: #ff694b;
+        --bg: #ffffff;            /* will be themed by Telegram */
+        --fg: #1f2937;
+        --card: #ffffff;
+        --muted: #6b7280;
+      }
+      body { font-family: "Poppins", sans-serif; background: var(--bg); color: var(--fg); }
+      .material-symbols-outlined { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+      .cart-badge { position: absolute; top: -8px; right: -8px; background-color: var(--primary-color); color: #fff; border-radius: 50%; width: 20px; height: 20px; display: none; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+      .show { display: flex !important; }
+    </style>
+    <style>
+      html, body { height: 100%; }
+      body { min-height: 100dvh; }
+      .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="max-w-md mx-auto" id="root">
+      <header class="p-4 sticky top-0 z-20 backdrop-blur-sm" style="background: var(--bg)">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background:#ececec">
+              <span class="material-symbols-outlined" style="color: var(--primary-color)">restaurant</span>
+            </div>
+            <h1 class="text-xl font-bold">Raviosta Kitchen</h1>
+          </div>
+          <div class="relative flex items-center">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            <span id="cart-badge" class="cart-badge">0</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="p-4 pb-28">
+        <div class="mb-4">
+          <div class="flex space-x-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            <button class="category-btn px-5 py-2.5 text-sm font-semibold text-white rounded-full whitespace-nowrap shadow" style="background: var(--primary-color)" data-category="all">All</button>
+            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="appetizers">Appetizers</button>
+            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="main">Main</button>
+            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="desserts">Desserts</button>
+            <button class="category-btn px-5 py-2.5 text-sm font-medium rounded-full whitespace-nowrap shadow" data-category="drinks">Drinks</button>
+          </div>
+        </div>
+
+        <div id="menu-items" class="grid grid-cols-2 gap-x-4 gap-y-6"></div>
+      </main>
+
+      <!-- Cart / Order Bar -->
+      <div id="order-summary" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 border-t" style="background: var(--bg); border-color: #e5e7eb;">
+        <div class="flex justify-between items-center">
+          <div>
+            <span id="item-count" class="font-bold">0 items</span>
+            <span id="total-price" class="ml-2 font-bold" style="color: var(--primary-color)">0 so'm</span>
+          </div>
+          <div class="space-x-2">
+            <button id="view-cart" class="px-4 py-2 rounded-full border">View Cart</button>
+            <button id="order-btn" class="px-4 py-2 text-white rounded-full" style="background: var(--primary-color)">Order</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cart Modal -->
+      <div id="cart-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" id="cart-card">
+          <div class="p-4 flex justify-between items-center border-b">
+            <h3 class="text-lg font-bold">Your Cart</h3>
+            <button id="close-cart" class="text-gray-500"><span class="material-symbols-outlined">close</span></button>
+          </div>
+          <div id="cart-list" class="divide-y"></div>
+          <div class="p-4 flex justify-between items-center border-t">
+            <span class="font-bold">Total:</span>
+            <span id="cart-total" class="font-bold" style="color: var(--primary-color)">0 so'm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Form Modal -->
+      <div id="order-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-bold">Complete Your Order</h3>
+              <button id="close-modal" class="text-gray-500"><span class="material-symbols-outlined">close</span></button>
+            </div>
+
+            <form id="order-form">
+              <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="name">Full Name</label>
+                <input id="name" type="text" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Your name" required />
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="phone">Phone Number</label>
+                <input id="phone" type="tel" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Your phone number" required />
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm font-medium mb-2" for="comment">Comment (optional)</label>
+                <textarea id="comment" rows="2" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Any notes for the courier"></textarea>
+              </div>
+
+              <div class="mb-4">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium">Location</p>
+                    <p id="location-status" class="text-xs text-gray-500">Not shared</p>
+                  </div>
+                  <button type="button" id="share-location" class="px-4 py-2 text-white rounded-full" style="background: var(--primary-color)">Share my location</button>
+                </div>
+              </div>
+
+              <div class="mb-6">
+                <h4 class="font-bold mb-2 text-lg">Order Summary</h4>
+                <div id="modal-order-summary" class="text-sm space-y-2"></div>
+                <div class="flex justify-between mt-4 pt-3 border-t font-bold text-lg">
+                  <span>Total:</span>
+                  <span id="modal-total" style="color: var(--primary-color)">0 so'm</span>
+                </div>
+              </div>
+
+              <div class="flex space-x-3">
+                <button type="button" id="cancel-order" class="flex-1 px-4 py-3 border rounded-xl">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">Place Order</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success Modal -->
+      <div id="success-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 text-center">
+          <div class="text-green-500 text-5xl mb-4">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">check_circle</span>
+          </div>
+          <h3 class="text-xl font-bold mb-2">Order Placed!</h3>
+          <p class="mb-6 text-gray-600">We received your order. Thank you.</p>
+          <button id="close-success" class="w-full px-6 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Telegram WebApp SDK integration
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.ready(); // signal readiness to Telegram
+        tg.expand(); // attempt to expand to full height
+      }
+
+      // Apply Telegram theme to CSS variables
+      function applyTelegramTheme() {
+        const tp = tg?.themeParams || {};
+        const root = document.documentElement;
+        if (tp.bg_color) root.style.setProperty('--bg', tp.bg_color);
+        if (tp.text_color) root.style.setProperty('--fg', tp.text_color);
+        if (tp.hint_color) root.style.setProperty('--muted', tp.hint_color);
+        if (tp.button_color) root.style.setProperty('--primary-color', tp.button_color);
+      }
+      applyTelegramTheme();
+
+      // Menu data (example products)
+      const menuItems = [
+        { id: 1, name: 'Plov', description: 'Rice with lamb, carrots, spices', price: 35000, category: 'main', image: 'https://images.unsplash.com/photo-1563379091339-03246963d96f?auto=format&fit=crop&w=500&q=80' },
+        { id: 2, name: 'Samsa', description: 'Baked pastry with meat and onions', price: 8000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=500&q=80' },
+        { id: 3, name: 'Shashlik', description: 'Grilled skewered meat', price: 28000, category: 'main', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=500&q=80' },
+        { id: 4, name: 'Lagman', description: 'Noodles with vegetables and meat', price: 25000, category: 'main', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?auto=format&fit=crop&w=500&q=80' },
+        { id: 5, name: 'Manti', description: 'Steamed dumplings', price: 22000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1606755962773-d324e74534a2?auto=format&fit=crop&w=500&q=80' },
+        { id: 6, name: 'Chak-Chak', description: 'Honey dessert with fried dough', price: 15000, category: 'desserts', image: 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=500&q=80' },
+        { id: 7, name: 'Green Tea', description: 'Traditional green tea', price: 5000, category: 'drinks', image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=500&q=80' },
+        { id: 8, name: 'Non Bread', description: 'Traditional round bread', price: 4000, category: 'appetizers', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&q=80' },
+      ];
+
+      // State
+      let currentOrder = [];
+      let currentCategory = 'all';
+      let userLocation = null; // { lat, lng, accuracy }
+
+      // DOM
+      const menuItemsContainer = document.getElementById('menu-items');
+      const itemCountElement = document.getElementById('item-count');
+      const totalPriceElement = document.getElementById('total-price');
+      const orderBtn = document.getElementById('order-btn');
+      const viewCartBtn = document.getElementById('view-cart');
+      const orderModal = document.getElementById('order-modal');
+      const cartModal = document.getElementById('cart-modal');
+      const successModal = document.getElementById('success-modal');
+      const orderForm = document.getElementById('order-form');
+      const modalOrderSummary = document.getElementById('modal-order-summary');
+      const modalTotalElement = document.getElementById('modal-total');
+      const categoryButtons = document.querySelectorAll('.category-btn');
+      const orderSummary = document.getElementById('order-summary');
+      const orderItemsList = document.getElementById('order-items-list');
+      const cartBadge = document.getElementById('cart-badge');
+      const cartList = document.getElementById('cart-list');
+      const cartTotal = document.getElementById('cart-total');
+      const locationStatus = document.getElementById('location-status');
+      const shareLocationBtn = document.getElementById('share-location');
+
+      // Render products
+      function renderMenuItems() {
+        menuItemsContainer.innerHTML = '';
+        const filtered = currentCategory === 'all' ? menuItems : menuItems.filter(i => i.category === currentCategory);
+        filtered.forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'rounded-2xl shadow overflow-hidden group border';
+          el.style.background = 'var(--card)';
+          el.innerHTML = `
+            <div class="relative">
+              <img src="${item.image}" alt="${item.name}" class="w-full h-36 object-cover" loading="lazy">
+            </div>
+            <div class="p-3">
+              <h3 class="font-semibold text-md truncate">${item.name}</h3>
+              <p class="text-sm" style="color: var(--muted)">${item.price.toLocaleString()} so'm</p>
+              <div class="mt-3 grid grid-cols-3 gap-2 items-center">
+                <button class="dec border rounded-lg py-1" data-id="${item.id}">-</button>
+                <button class="add-to-cart col-span-2 px-3 py-2 text-white rounded-lg" style="background: var(--primary-color)" data-id="${item.id}">Add to Cart</button>
+              </div>
+            </div>`;
+          menuItemsContainer.appendChild(el);
+        });
+      }
+
+      // Update cart summary bar and badge
+      function updateOrderSummary() {
+        const totalItems = currentOrder.reduce((s, i) => s + i.quantity, 0);
+        const totalPrice = currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
+        itemCountElement.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`;
+        totalPriceElement.textContent = `${totalPrice.toLocaleString()} so'm`;
+        if (totalItems > 0) {
+          cartBadge.textContent = totalItems;
+          cartBadge.classList.add('show');
+        } else {
+          cartBadge.classList.remove('show');
+        }
+        orderBtn.disabled = totalItems === 0;
+      }
+
+      // Update cart modal list
+      function renderCart() {
+        cartList.innerHTML = '';
+        let total = 0;
+        currentOrder.forEach(item => {
+          const itemTotal = item.quantity * item.price;
+          total += itemTotal;
+          const row = document.createElement('div');
+          row.className = 'p-3 flex items-center justify-between';
+          row.innerHTML = `
+            <div>
+              <div class="font-medium">${item.name}</div>
+              <div class="text-sm" style="color: var(--muted)">${item.price.toLocaleString()} so'm</div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button class="qty-dec border rounded-lg w-8 h-8" data-id="${item.id}">-</button>
+              <span class="w-8 text-center">${item.quantity}</span>
+              <button class="qty-inc border rounded-lg w-8 h-8" data-id="${item.id}">+</button>
+              <span class="font-medium w-24 text-right">${itemTotal.toLocaleString()} so'm</span>
+            </div>`;
+          cartList.appendChild(row);
+        });
+        cartTotal.textContent = `${total.toLocaleString()} so'm`;
+      }
+
+      // Helpers
+      function addToOrder(itemId) {
+        const item = menuItems.find(i => i.id === itemId);
+        if (!item) return;
+        const ex = currentOrder.find(i => i.id === itemId);
+        if (ex) ex.quantity += 1; else currentOrder.push({ ...item, quantity: 1 });
+        updateOrderSummary();
+      }
+      function decFromOrder(itemId) {
+        const idx = currentOrder.findIndex(i => i.id === itemId);
+        if (idx >= 0) {
+          currentOrder[idx].quantity -= 1;
+          if (currentOrder[idx].quantity <= 0) currentOrder.splice(idx, 1);
+          updateOrderSummary();
+        }
+      }
+
+      // Event bindings
+      function setupEvents() {
+        // Category buttons
+        categoryButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => { b.classList.remove('text-white'); b.style.background = ''; });
+            btn.classList.add('text-white');
+            btn.style.background = 'var(--primary-color)';
+            currentCategory = btn.getAttribute('data-category');
+            renderMenuItems();
+          });
+        });
+
+        // Delegated events: add/dec in product grid
+        menuItemsContainer.addEventListener('click', (e) => {
+          const add = e.target.closest('.add-to-cart');
+          const dec = e.target.closest('.dec');
+          if (add) { addToOrder(parseInt(add.getAttribute('data-id'))); }
+          if (dec) { decFromOrder(parseInt(dec.getAttribute('data-id'))); }
+        });
+
+        // View cart
+        viewCartBtn.addEventListener('click', () => {
+          renderCart();
+          cartModal.classList.remove('hidden');
+          cartModal.classList.add('flex');
+        });
+        document.getElementById('close-cart').addEventListener('click', () => {
+          cartModal.classList.add('hidden');
+          cartModal.classList.remove('flex');
+        });
+        cartModal.addEventListener('click', (e) => {
+          if (e.target === cartModal) { cartModal.classList.add('hidden'); cartModal.classList.remove('flex'); }
+        });
+        // Quantity in cart
+        cartList.addEventListener('click', (e) => {
+          if (e.target.classList.contains('qty-dec')) {
+            decFromOrder(parseInt(e.target.getAttribute('data-id')));
+            renderCart();
+          }
+          if (e.target.classList.contains('qty-inc')) {
+            addToOrder(parseInt(e.target.getAttribute('data-id')));
+            renderCart();
+          }
+        });
+
+        // Order button -> open form
+        orderBtn.addEventListener('click', () => openOrderModal());
+
+        // Order form modal close
+        document.getElementById('close-modal').addEventListener('click', closeOrderModal);
+        document.getElementById('cancel-order').addEventListener('click', closeOrderModal);
+        orderModal.addEventListener('click', (e) => { if (e.target === orderModal) closeOrderModal(); });
+
+        // Success modal close
+        document.getElementById('close-success').addEventListener('click', () => {
+          successModal.classList.add('hidden'); successModal.classList.remove('flex');
+        });
+
+        // Share location
+        shareLocationBtn.addEventListener('click', requestLocation);
+
+        // Submit order -> send via Telegram WebApp
+        orderForm.addEventListener('submit', submitOrder);
+      }
+
+      function openOrderModal() {
+        if (currentOrder.length === 0) return;
+        // Update modal summary
+        modalOrderSummary.innerHTML = '';
+        let total = 0;
+        currentOrder.forEach((item) => {
+          const t = item.price * item.quantity; total += t;
+          const el = document.createElement('div');
+          el.className = 'flex justify-between py-2 border-b';
+          el.innerHTML = `
+            <div><span class="font-medium">${item.quantity}x ${item.name}</span><p class="text-xs text-gray-500">${item.description}</p></div>
+            <span class="font-medium">${t.toLocaleString()} so'm</span>`;
+          modalOrderSummary.appendChild(el);
+        });
+        modalTotalElement.textContent = `${total.toLocaleString()} so'm`;
+        orderModal.classList.remove('hidden');
+        orderModal.classList.add('flex');
+      }
+      function closeOrderModal() { orderModal.classList.add('hidden'); orderModal.classList.remove('flex'); }
+
+      // Geolocation (requires user permission inside Telegram webview)
+      async function requestLocation() {
+        if (!('geolocation' in navigator)) {
+          locationStatus.textContent = 'Geolocation not supported on this device.';
+          return;
+        }
+        locationStatus.textContent = 'Requesting location…';
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy };
+            locationStatus.textContent = `Shared: ${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)} (±${Math.round(userLocation.accuracy)}m)`;
+          },
+          (err) => {
+            console.warn('Location error', err);
+            locationStatus.textContent = 'Permission denied or unavailable.';
+          },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      }
+
+      function safePhone(v) { return String(v || '').trim(); }
+      function totalPrice() { return currentOrder.reduce((s,i)=>s + i.price*i.quantity, 0); }
+
+      // Send order to bot via Telegram sendData()
+      function submitOrder(ev) {
+        ev.preventDefault();
+        if (!tg) {
+          alert('Please open this mini app inside Telegram to submit your order.');
+          return;
+        }
+
+        const customer = {
+          name: document.getElementById('name').value.trim(),
+          phone: safePhone(document.getElementById('phone').value),
+          comment: document.getElementById('comment').value.trim(),
+        };
+
+        const payload = {
+          source: 'raviosta-mini-app',
+          timestamp: new Date().toISOString(),
+          user: tg.initDataUnsafe?.user || null,
+          items: currentOrder.map(({id,name,price,quantity}) => ({ id, name, price, quantity })),
+          total: totalPrice(),
+          customer,
+          location: userLocation,
+        };
+
+        // Telegram SDK method: sends data back to the bot that opened this web app
+        // Your bot will receive a message update with web_app_data containing this JSON string
+        try {
+          tg.sendData(JSON.stringify(payload));
+          // Optional: give instant feedback; Telegram will close web app if button configured with is_close_confirmation
+          closeOrderModal();
+          successModal.classList.remove('hidden'); successModal.classList.add('flex');
+          // Reset local cart
+          currentOrder = []; updateOrderSummary(); orderForm.reset(); userLocation = null; locationStatus.textContent = 'Not shared';
+        } catch (e) {
+          console.error('sendData failed', e);
+          alert('Failed to send order to Telegram. Please try again.');
+        }
+      }
+
+      function init() {
+        renderMenuItems();
+        setupEvents();
+        updateOrderSummary();
+      }
+      document.addEventListener('DOMContentLoaded', init);
+    </script>
+  </body>
+  </html>
