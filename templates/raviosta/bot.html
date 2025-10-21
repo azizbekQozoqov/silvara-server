@@ -235,7 +235,9 @@
         } catch { return 'english'; }
       }
       let currentLang = detectInitialLang();
-      const FALLBACK_IMG = "{% static 'raviosta/ravioli.svg' %}";
+  const FALLBACK_IMG = "{% static 'raviosta/ravioli.svg' %}";
+  const RAVIOLI_IMG_BASE = "{% static 'raviosta/ravioli/' %}"; // 1.jpg ... 5.jpg
+  const RAVIOLI_IMG_COUNT = 5;
       const CATEGORY_IMAGES = {
         'ravioli': '{% static "raviosta/ravioli.svg" %}',
         'pasta': '{% static "raviosta/pasta.svg" %}',
@@ -392,10 +394,19 @@
       function buildMenu(lang){
         menuItems = [];
         let id = 1;
+        const counters = {};
         MENU_DATA.categories.forEach(cat => {
           const slug = slugify(cat.english); // stable across languages
+          counters[slug] = 0;
           cat.items.forEach(it => {
-            const img = CATEGORY_IMAGES[slug] || FALLBACK_IMG;
+            let img = CATEGORY_IMAGES[slug] || FALLBACK_IMG;
+            if (slug === 'ravioli') {
+              counters[slug] += 1;
+              const idx = counters[slug];
+              if (idx <= RAVIOLI_IMG_COUNT) {
+                img = `${RAVIOLI_IMG_BASE}${idx}.jpg`;
+              }
+            }
             menuItems.push({
               id: id++,
               name: it[lang],
