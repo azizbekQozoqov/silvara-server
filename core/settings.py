@@ -10,7 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +28,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-@@15_)yu@*k$bv08a%t*wa(tcks^h06qdwtj(^t7z^1_9w32&^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'false') == 'true'
 
-ALLOWED_HOSTS = ['silvara.uz', 'www.silvara.uz', ] # 'fillright.silvara.uz', 'www.fillright.silvara.uz'
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",") if not DEBUG else ["*"]  # 'fillright.silvara.uz', 'www.fillright.silvara.uz'
 
 # Application definition
 
@@ -40,7 +45,6 @@ INSTALLED_APPS = [
     
     # created apps
     'silvara.apps.SilvaraConfig',
-    'fillright.apps.FillrightConfig',
 ]
 
 MIDDLEWARE = [
@@ -52,8 +56,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
-    'django_hosts.middleware.HostsResponseMiddleware', # for andling subdomain
 ]
 
 ROOT_URLCONF = 'core.urls'
