@@ -40,6 +40,11 @@
             <h1 class="text-xl font-bold">Raviosta Kitchen</h1>
           </div>
           <div class="relative flex items-center">
+            <div id="lang-switcher" class="flex items-center gap-1 mr-3">
+              <button class="lang-btn px-2 py-1 text-xs border rounded-full" data-lang="uzbek">UZ</button>
+              <button class="lang-btn px-2 py-1 text-xs border rounded-full" data-lang="russian">RU</button>
+              <button class="lang-btn px-2 py-1 text-xs border rounded-full" data-lang="english">EN</button>
+            </div>
             <span class="material-symbols-outlined">shopping_cart</span>
             <span id="cart-badge" class="cart-badge">0</span>
           </div>
@@ -72,12 +77,12 @@
       <div id="cart-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50 p-4">
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" id="cart-card">
           <div class="p-4 flex justify-between items-center border-b">
-            <h3 class="text-lg font-bold">Your Cart</h3>
+            <h3 id="your-cart-title" class="text-lg font-bold">Your Cart</h3>
             <button id="close-cart" class="text-gray-500"><span class="material-symbols-outlined">close</span></button>
           </div>
           <div id="cart-list" class="divide-y"></div>
           <div class="p-4 flex justify-between items-center border-t">
-            <span class="font-bold">Total:</span>
+            <span id="cart-total-label" class="font-bold">Total:</span>
             <span id="cart-total" class="font-bold" style="color: var(--primary-color)">0 so'm</span>
           </div>
         </div>
@@ -88,28 +93,28 @@
         <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-bold">Complete Your Order</h3>
+              <h3 id="complete-order-title" class="text-xl font-bold">Complete Your Order</h3>
               <button id="close-modal" class="text-gray-500"><span class="material-symbols-outlined">close</span></button>
             </div>
 
             <form id="order-form">
               <div class="mb-4">
-                <label class="block text-sm font-medium mb-2" for="name">Full Name</label>
+                <label id="label-name" class="block text-sm font-medium mb-2" for="name">Full Name</label>
                 <input id="name" type="text" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Your name" required />
               </div>
               <div class="mb-4">
-                <label class="block text-sm font-medium mb-2" for="phone">Phone Number</label>
+                <label id="label-phone" class="block text-sm font-medium mb-2" for="phone">Phone Number</label>
                 <input id="phone" type="tel" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Your phone number" required />
               </div>
               <div class="mb-4">
-                <label class="block text-sm font-medium mb-2" for="comment">Comment (optional)</label>
+                <label id="label-comment" class="block text-sm font-medium mb-2" for="comment">Comment (optional)</label>
                 <textarea id="comment" rows="2" class="w-full px-4 py-3 border rounded-xl focus:outline-none" placeholder="Any notes for the courier"></textarea>
               </div>
 
               <div class="mb-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium">Location</p>
+                    <p id="label-location" class="text-sm font-medium">Location</p>
                     <p id="location-status" class="text-xs text-gray-500">Not shared</p>
                   </div>
                   <button type="button" id="share-location" class="px-4 py-2 text-white rounded-full" style="background: var(--primary-color)">Share my location</button>
@@ -117,17 +122,17 @@
               </div>
 
               <div class="mb-6">
-                <h4 class="font-bold mb-2 text-lg">Order Summary</h4>
+                <h4 id="order-summary-title" class="font-bold mb-2 text-lg">Order Summary</h4>
                 <div id="modal-order-summary" class="text-sm space-y-2"></div>
                 <div class="flex justify-between mt-4 pt-3 border-t font-bold text-lg">
-                  <span>Total:</span>
+                  <span id="modal-total-label">Total:</span>
                   <span id="modal-total" style="color: var(--primary-color)">0 so'm</span>
                 </div>
               </div>
 
               <div class="flex space-x-3">
                 <button type="button" id="cancel-order" class="flex-1 px-4 py-3 border rounded-xl">Cancel</button>
-                <button type="submit" class="flex-1 px-4 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">Place Order</button>
+                <button id="place-order-btn" type="submit" class="flex-1 px-4 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">Place Order</button>
               </div>
             </form>
           </div>
@@ -140,8 +145,8 @@
           <div class="text-green-500 text-5xl mb-4">
             <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">check_circle</span>
           </div>
-          <h3 class="text-xl font-bold mb-2">Order Placed!</h3>
-          <p class="mb-6 text-gray-600">We received your order. Thank you.</p>
+          <h3 id="success-title" class="text-xl font-bold mb-2">Order Placed!</h3>
+          <p id="success-msg" class="mb-6 text-gray-600">We received your order. Thank you.</p>
           <button id="close-success" class="w-full px-6 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">OK</button>
         </div>
       </div>
@@ -218,7 +223,18 @@
         ]}
       ]};
 
-      const LANG = 'english';
+      // Language handling
+      function detectInitialLang() {
+        try {
+          const saved = localStorage.getItem('raviosta_lang');
+          if (saved) return saved;
+          const code = (tg?.initDataUnsafe?.user?.language_code || '').toLowerCase();
+          if (code.startsWith('uz')) return 'uzbek';
+          if (code.startsWith('ru')) return 'russian';
+          return 'english';
+        } catch { return 'english'; }
+      }
+      let currentLang = detectInitialLang();
       const FALLBACK_IMG = "{% static 'raviosta/ravioli.svg' %}";
       const CATEGORY_IMAGES = {
         'ravioli': '{% static "raviosta/ravioli.svg" %}',
@@ -230,19 +246,160 @@
         'drinks': '{% static "raviosta/drinks.svg" %}',
       };
 
-      const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
-      const CATEGORIES = MENU_DATA.categories.map(cat => ({ slug: slugify(cat[LANG]), label: cat[LANG] }));
+      // Minimal i18n for UI bits
+      const I18N = {
+        english: {
+          all: 'All',
+          items: 'items',
+          item: 'item',
+          view_cart: 'View Cart',
+          order: 'Order',
+          add: 'Add',
+          added: 'Added',
+          your_cart: 'Your Cart',
+          total: "Total:",
+          complete_order: 'Complete Your Order',
+          full_name: 'Full Name',
+          full_name_ph: 'Your name',
+          phone: 'Phone Number',
+          phone_ph: 'Your phone number',
+          comment: 'Comment (optional)',
+          comment_ph: 'Any notes for the courier',
+          location: 'Location',
+          not_shared: 'Not shared',
+          share_location: 'Share my location',
+          order_summary: 'Order Summary',
+          cancel: 'Cancel',
+          place_order: 'Place Order',
+          order_placed: 'Order Placed!',
+          order_received: 'We received your order. Thank you.',
+          ok: 'OK',
+          open_in_tg: 'Please open this mini app inside Telegram to submit your order.',
+          open_in_tg_short: 'Open this Mini App from Telegram.',
+          send_fail: 'Failed to send order to Telegram. Please try again.',
+          http_fail: 'Failed to send order. Please try again.',
+          unexpected: 'Unexpected error. Please try again.',
+        },
+        uzbek: {
+          all: 'Barchasi',
+          items: 'ta',
+          item: 'ta',
+          view_cart: 'Savatni ko‘rish',
+          order: 'Buyurtma',
+          add: 'Qo‘shish',
+          added: 'Qo‘shildi',
+          your_cart: 'Savat',
+          total: "Jami:",
+          complete_order: 'Buyurtmani yakunlash',
+          full_name: 'To‘liq ism',
+          full_name_ph: 'Ismingiz',
+          phone: 'Telefon raqam',
+          phone_ph: 'Telefon raqamingiz',
+          comment: 'Izoh (ixtiyoriy)',
+          comment_ph: 'Kuryer uchun izoh',
+          location: 'Manzil',
+          not_shared: 'Ulashilmagan',
+          share_location: 'Manzilimni ulashish',
+          order_summary: 'Buyurtma xulosasi',
+          cancel: 'Bekor qilish',
+          place_order: 'Buyurtma berish',
+          order_placed: 'Buyurtma qabul qilindi!',
+          order_received: 'Buyurtmangiz qabul qilindi. Rahmat.',
+          ok: 'OK',
+          open_in_tg: 'Buyurtma yuborish uchun ilovani Telegram ichida oching.',
+          open_in_tg_short: 'Iltimos, Mini Ilovani Telegramdan oching.',
+          send_fail: 'Buyurtma yuborilmadi. Qayta urinib ko‘ring.',
+          http_fail: 'Buyurtma yuborishda xatolik. Qayta urinib ko‘ring.',
+          unexpected: 'Kutilmagan xatolik. Qayta urinib ko‘ring.',
+        },
+        russian: {
+          all: 'Все',
+          items: 'товаров',
+          item: 'товар',
+          view_cart: 'Корзина',
+          order: 'Заказать',
+          add: 'Добавить',
+          added: 'Добавлено',
+          your_cart: 'Ваша корзина',
+          total: "Итого:",
+          complete_order: 'Оформление заказа',
+          full_name: 'Полное имя',
+          full_name_ph: 'Ваше имя',
+          phone: 'Номер телефона',
+          phone_ph: 'Ваш номер телефона',
+          comment: 'Комментарий (необязательно)',
+          comment_ph: 'Заметки для курьера',
+          location: 'Локация',
+          not_shared: 'Не указано',
+          share_location: 'Поделиться локацией',
+          order_summary: 'Состав заказа',
+          cancel: 'Отмена',
+          place_order: 'Оформить',
+          order_placed: 'Заказ оформлен!',
+          order_received: 'Мы получили ваш заказ. Спасибо.',
+          ok: 'OK',
+          open_in_tg: 'Пожалуйста, откройте это мини‑приложение внутри Telegram, чтобы отправить заказ.',
+          open_in_tg_short: 'Откройте мини‑приложение в Telegram.',
+          send_fail: 'Не удалось отправить заказ в Telegram. Попробуйте ещё раз.',
+          http_fail: 'Не удалось отправить заказ. Попробуйте ещё раз.',
+          unexpected: 'Неожиданная ошибка. Попробуйте ещё раз.',
+        },
+      };
 
-      let menuItems = []; // flattened
-      (function buildMenu(){
+      function t(key){
+        return (I18N[currentLang] && I18N[currentLang][key]) || (I18N.english && I18N.english[key]) || key;
+      }
+
+      function applyTranslations(){
+        // Header and order bar
+        document.getElementById('view-cart').textContent = t('view_cart');
+        document.getElementById('order-btn').textContent = t('order');
+
+        // Cart modal
+        document.getElementById('your-cart-title').textContent = t('your_cart');
+        document.getElementById('cart-total-label').textContent = t('total');
+
+        // Order modal
+        document.getElementById('complete-order-title').textContent = t('complete_order');
+        const nameEl = document.getElementById('label-name');
+        nameEl.textContent = t('full_name');
+        document.getElementById('name').placeholder = t('full_name_ph');
+        document.getElementById('label-phone').textContent = t('phone');
+        document.getElementById('phone').placeholder = t('phone_ph');
+        document.getElementById('label-comment').textContent = t('comment');
+        document.getElementById('comment').placeholder = t('comment_ph');
+        document.getElementById('label-location').textContent = t('location');
+        document.getElementById('location-status').textContent = t('not_shared');
+        document.getElementById('share-location').textContent = t('share_location');
+        document.getElementById('order-summary-title').textContent = t('order_summary');
+        document.getElementById('modal-total-label').textContent = t('total');
+        document.getElementById('cancel-order').textContent = t('cancel');
+        document.getElementById('place-order-btn').textContent = t('place_order');
+
+        // Success modal
+        document.getElementById('success-title').textContent = t('order_placed');
+        document.getElementById('success-msg').textContent = t('order_received');
+        document.getElementById('close-success').textContent = t('ok');
+      }
+    }
+
+      const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+      function getCategories(lang) {
+        return MENU_DATA.categories.map(cat => ({ slug: slugify(cat.english), label: cat[lang] }));
+      }
+
+      let CATEGORIES = getCategories(currentLang);
+      let menuItems = []; // flattened for current language
+      function buildMenu(lang){
+        menuItems = [];
         let id = 1;
         MENU_DATA.categories.forEach(cat => {
-          const slug = slugify(cat[LANG]);
+          const slug = slugify(cat.english); // stable across languages
           cat.items.forEach(it => {
             const img = CATEGORY_IMAGES[slug] || FALLBACK_IMG;
             menuItems.push({
               id: id++,
-              name: it[LANG],
+              name: it[lang],
               description: '',
               price: it.price,
               category: slug,
@@ -250,7 +407,8 @@
             });
           });
         });
-      })();
+      }
+      buildMenu(currentLang);
 
 
       // State
@@ -271,6 +429,7 @@
       const modalOrderSummary = document.getElementById('modal-order-summary');
       const modalTotalElement = document.getElementById('modal-total');
   const categoryBar = document.getElementById('category-bar');
+  const langSwitcher = document.getElementById('lang-switcher');
   let categoryButtons; // will be set after render
       const orderSummary = document.getElementById('order-summary');
       const orderItemsList = document.getElementById('order-items-list');
@@ -287,7 +446,7 @@
         allBtn.className = 'category-btn px-5 py-2.5 text-sm font-semibold text-white rounded-full whitespace-nowrap shadow';
         allBtn.dataset.category = 'all';
         allBtn.style.background = 'var(--primary-color)';
-        allBtn.textContent = 'All';
+  allBtn.textContent = I18N[currentLang]?.all || 'All';
         categoryBar.appendChild(allBtn);
 
         CATEGORIES.forEach(c => {
@@ -299,6 +458,19 @@
         });
 
         categoryButtons = document.querySelectorAll('.category-btn');
+      }
+
+      function bindCategoryEvents() {
+        categoryButtons.forEach(btn => {
+          btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => { b.classList.remove('text-white'); b.style.background = ''; });
+            btn.classList.add('text-white');
+            btn.style.background = 'var(--primary-color)';
+            currentCategory = btn.getAttribute('data-category');
+            renderMenuItems();
+              applyTranslations();
+          });
+        });
       }
 
       // Render products
@@ -326,9 +498,9 @@
                   class="add-to-cart col-span-2 px-2 py-1 text-xs text-white rounded-md transition-transform active:scale-95 flex items-center justify-center gap-1"
                   style="background: var(--primary-color)"
                   data-id="${item.id}"
-                  onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180,easing:'ease-out'}); if(!this.dataset.added){ this.dataset.added='1'; this.style.background='#22c55e'; this.innerHTML='<span class=\'material-symbols-outlined\' style=\'font-size:18px\'>check</span> Added'; }"
+                    onclick="this.animate([{transform:'scale(1)'},{transform:'scale(0.95)'},{transform:'scale(1)'}],{duration:180,easing:'ease-out'}); if(!this.dataset.added){ this.dataset.added='1'; this.style.background='#22c55e'; this.innerHTML='<span class=\'material-symbols-outlined\' style=\'font-size:18px\'>check</span> ${t('added')}'; }"
                 >
-                  Add
+                    ${t('add')}
                 </button>
               </div>
             </div>`;
@@ -338,9 +510,10 @@
 
       // Update cart summary bar and badge
       function updateOrderSummary() {
-        const totalItems = currentOrder.reduce((s, i) => s + i.quantity, 0);
-        const totalPrice = currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
-        itemCountElement.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`;
+  const totalItems = currentOrder.reduce((s, i) => s + i.quantity, 0);
+  const totalPrice = currentOrder.reduce((s, i) => s + i.price * i.quantity, 0);
+  const unit = totalItems === 1 ? t('item') : t('items');
+  itemCountElement.textContent = `${totalItems} ${unit}`;
         totalPriceElement.textContent = `${totalPrice.toLocaleString()} so'm`;
         if (totalItems > 0) {
           cartBadge.textContent = totalItems;
@@ -396,13 +569,26 @@
       // Event bindings
       function setupEvents() {
         // Category buttons
-        categoryButtons.forEach(btn => {
-          btn.addEventListener('click', () => {
-            categoryButtons.forEach(b => { b.classList.remove('text-white'); b.style.background = ''; });
-            btn.classList.add('text-white');
-            btn.style.background = 'var(--primary-color)';
-            currentCategory = btn.getAttribute('data-category');
-            renderMenuItems();
+        bindCategoryEvents();
+        
+        // Language switcher
+        langSwitcher.addEventListener('click', (e) => {
+          const btn = e.target.closest('.lang-btn');
+          if (!btn) return;
+          const lang = btn.dataset.lang;
+          if (!lang || lang === currentLang) return;
+          try { localStorage.setItem('raviosta_lang', lang); } catch {}
+          currentLang = lang;
+          CATEGORIES = getCategories(currentLang);
+          buildMenu(currentLang);
+          currentCategory = 'all';
+          renderCategoryButtons();
+          bindCategoryEvents();
+          renderMenuItems();
+          // Update active lang button styles
+          document.querySelectorAll('#lang-switcher .lang-btn').forEach(b => {
+            b.style.background = (b.dataset.lang === currentLang) ? 'var(--primary-color)' : '';
+            b.classList.toggle('text-white', b.dataset.lang === currentLang);
           });
         });
 
@@ -506,7 +692,7 @@
       function submitOrder(ev) {
         ev.preventDefault();
         if (!tg) {
-          alert('Please open this mini app inside Telegram to submit your order.');
+          alert(t('open_in_tg'));
           return;
         }
 
@@ -537,14 +723,14 @@
           currentOrder = []; updateOrderSummary(); orderForm.reset(); userLocation = null; locationStatus.textContent = 'Not shared';
         } catch (e) {
           console.error('sendData failed', e);
-          alert('Failed to send order to Telegram. Please try again.');
+          alert(t('send_fail'));
         }
       }
         // Send order to bot via Telegram sendData(), or HTTP fallback when launched from attachment menu
         function submitOrder(ev) {
           ev.preventDefault();
           if (!tg) {
-            alert('Open this Mini App from Telegram.');
+            alert(t('open_in_tg_short'));
             return;
           }
 
@@ -591,7 +777,7 @@
               }).then(json => {
                 if (json?.ok) afterSuccess(); else throw new Error('Server rejected order');
               }).catch(() => {
-                tg.showAlert?.('Failed to send order. Please try again.');
+                tg.showAlert?.(t('http_fail'));
               });
             } else {
               // Bot chat context: use sendData()
@@ -599,13 +785,19 @@
               afterSuccess();
             }
           } catch (e) {
-            tg.showAlert?.('Unexpected error. Please try again.');
+            tg.showAlert?.(t('unexpected'));
           }
         }
 
       function init() {
         renderCategoryButtons();
+        // set initial active lang button style
+        document.querySelectorAll('#lang-switcher .lang-btn').forEach(b => {
+          b.style.background = (b.dataset.lang === currentLang) ? 'var(--primary-color)' : '';
+          b.classList.toggle('text-white', b.dataset.lang === currentLang);
+        });
         renderMenuItems();
+        applyTranslations();
         setupEvents();
         updateOrderSummary();
       }
