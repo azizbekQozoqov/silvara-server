@@ -10,6 +10,54 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = TeleBot(BOT_TOKEN)
 logger = logging.getLogger('silvara')
 
+# Simple i18n for user-facing bot messages
+I18N = {
+    'english': {
+        'start': (
+            "Welcome to Raviosta Kitchen!\n"
+            "Open the menu to browse dishes and place your order."
+        ),
+        'open_menu': "Open Menu",
+        'no_order': "No order data received.",
+        'parse_fail': "Failed to read your order data. Please try again.",
+        'sent_ok': "✅ Your order was sent. We will contact you soon.",
+        'forward_fail': "Could not forward your order. Please try again later.",
+    },
+    'uzbek': {
+        'start': (
+            "Raviosta Kitchen-ga xush kelibsiz!\n"
+            "Menyuni ochib taomlarni ko'ring va buyurtma bering."
+        ),
+        'open_menu': "Menyuni ochish",
+        'no_order': "Buyurtma ma'lumoti olinmadi.",
+        'parse_fail': "Buyurtma ma'lumotini o‘qib bo‘lmadi. Qayta urinib ko‘ring.",
+        'sent_ok': "✅ Buyurtmangiz yuborildi. Tez orada siz bilan bog‘lanamiz.",
+        'forward_fail': "Buyurtmangizni yuborib bo‘lmadi. Iltimos, keyinroq qayta urinib ko‘ring.",
+    },
+    'russian': {
+        'start': (
+            "Добро пожаловать в Raviosta Kitchen!\n"
+            "Откройте меню, чтобы выбрать блюда и оформить заказ."
+        ),
+        'open_menu': "Открыть меню",
+        'no_order': "Данные заказа не получены.",
+        'parse_fail': "Не удалось прочитать данные заказа. Попробуйте ещё раз.",
+        'sent_ok': "✅ Ваш заказ отправлен. Мы скоро с вами свяжемся.",
+        'forward_fail': "Не удалось переслать ваш заказ. Пожалуйста, попробуйте позже.",
+    },
+}
+
+def _get_lang(message: types.Message) -> str:
+    code = (getattr(getattr(message, 'from_user', None), 'language_code', '') or '').lower()
+    if code.startswith('uz'):
+        return 'uzbek'
+    if code.startswith('ru'):
+        return 'russian'
+    return 'english'
+
+def _t(lang: str, key: str) -> str:
+    return I18N.get(lang, I18N['english']).get(key, I18N['english'].get(key, key))
+
 # Admin/group chat to forward orders to
 TARGET_CHAT_ID = os.getenv("TARGET_CHAT_ID")  # e.g., -1001234567890 for groups, or admin user id
 if TARGET_CHAT_ID:
@@ -24,14 +72,12 @@ WEBAPP_URL = os.getenv("WEBAPP_URL")  # e.g., https://silvara.uz/raviosta/bot/
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    text = (
-        "Welcome to Raviosta Kitchen!\n"
-        "Open the menu to browse dishes and place your order."
-    )
+    lang = _get_lang(message)
+    text = _t(lang, 'start')
     if WEBAPP_URL:
         # Reply keyboard button that opens the WebApp
         kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        kb.add(types.KeyboardButton("Open Menu", web_app=types.WebAppInfo(WEBAPP_URL)))
+        kb.add(types.KeyboardButton(_t(lang, 'open_menu'), web_app=types.WebAppInfo(WEBAPP_URL)))
         bot.send_message(message.chat.id, text, reply_markup=kb)
     else:
         bot.send_message(message.chat.id, text)
@@ -72,15 +118,16 @@ def handle_webapp_data(message: types.Message):
     Receives data from Telegram WebApp via WebApp.sendData(JSON_STRING)
     and forwards a formatted order to the target chat.
     """
+    lang = _get_lang(message)
     try:
         data_raw = message.web_app_data.data if message.web_app_data else None
         if not data_raw:
-            bot.reply_to(message, "No order data received.")
+            bot.reply_to(message, _t(lang, 'no_order'))
             return
         order = json.loads(data_raw)
     except Exception as e:
         logger.exception("Failed to parse web_app_data")
-        bot.reply_to(message, "Failed to read your order data. Please try again.")
+        bot.reply_to(message, _t(lang, 'parse_fail'))
         return
 
     text = _format_order_text(order)
@@ -108,7 +155,7 @@ def handle_webapp_data(message: types.Message):
                 logger.exception("Fallback send to user chat also failed")
 
     if sent_ok:
-        bot.reply_to(message, "✅ Your order was sent. We will contact you soon.")
+        bot.reply_to(message, _t(lang, 'sent_ok'))
     else:
-        bot.reply_to(message, "Could not forward your order. Please try again later.")
+        bot.reply_to(message, _t(lang, 'forward_fail'))
 
