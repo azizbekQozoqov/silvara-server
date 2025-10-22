@@ -699,44 +699,7 @@
       function safePhone(v) { return String(v || '').trim(); }
       function totalPrice() { return currentOrder.reduce((s,i)=>s + i.price*i.quantity, 0); }
 
-      // Send order to bot via Telegram sendData()
-      function submitOrder(ev) {
-        ev.preventDefault();
-        if (!tg) {
-          alert(t('open_in_tg'));
-          return;
-        }
-
-        const customer = {
-          name: document.getElementById('name').value.trim(),
-          phone: safePhone(document.getElementById('phone').value),
-          comment: document.getElementById('comment').value.trim(),
-        };
-
-        const payload = {
-          source: 'raviosta-mini-app',
-          timestamp: new Date().toISOString(),
-          user: tg.initDataUnsafe?.user || null,
-          items: currentOrder.map(({id,name,price,quantity}) => ({ id, name, price, quantity })),
-          total: totalPrice(),
-          customer,
-          location: userLocation,
-        };
-
-        // Telegram SDK method: sends data back to the bot that opened this web app
-        // Your bot will receive a message update with web_app_data containing this JSON string
-        try {
-          tg.sendData(JSON.stringify(payload));
-          // Optional: give instant feedback; Telegram will close web app if button configured with is_close_confirmation
-          closeOrderModal();
-          successModal.classList.remove('hidden'); successModal.classList.add('flex');
-          // Reset local cart
-          currentOrder = []; updateOrderSummary(); orderForm.reset(); userLocation = null; locationStatus.textContent = 'Not shared';
-        } catch (e) {
-          console.error('sendData failed', e);
-          alert(t('send_fail'));
-        }
-      }
+      
         // Send order to bot via Telegram sendData(), or HTTP fallback when launched from attachment menu
         function submitOrder(ev) {
           ev.preventDefault();

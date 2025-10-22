@@ -83,18 +83,32 @@ def handle_webapp_data(message: types.Message):
         bot.reply_to(message, "Failed to read your order data. Please try again.")
         return
 
+    text = _format_order_text(order)
+    loc = order.get('location') or {}
+
+    # Try to send to TARGET_CHAT_ID first; if that fails, fall back to replying in the current chat
+    dest_primary = TARGET_CHAT_ID or message.chat.id
+    sent_ok = False
+
     try:
-        text = _format_order_text(order)
-        dest = TARGET_CHAT_ID or message.chat.id
-        # Forward order summary
-        bot.send_message(dest, text)
-        # Send pin if location present
-        loc = order.get('location') or {}
+        bot.send_message(dest_primary, text)
         if loc.get('lat') and loc.get('lng'):
-            bot.send_location(dest, latitude=loc['lat'], longitude=loc['lng'])
-        # Acknowledge to the user
+            bot.send_location(dest_primary, latitude=loc['lat'], longitude=loc['lng'])
+        sent_ok = True
+    except Exception as e:
+        logger.exception("Primary forward failed (dest=%s). Falling back to user chat.", dest_primary)
+        # Fallback only if primary wasn't the same as the current chat
+        if dest_primary != message.chat.id:
+            try:
+                bot.send_message(message.chat.id, text)
+                if loc.get('lat') and loc.get('lng'):
+                    bot.send_location(message.chat.id, latitude=loc['lat'], longitude=loc['lng'])
+                sent_ok = True
+            except Exception:
+                logger.exception("Fallback send to user chat also failed")
+
+    if sent_ok:
         bot.reply_to(message, "✅ Your order was sent. We will contact you soon.")
-    except Exception:
-        logger.exception("Failed to forward order to target chat")
+    else:
         bot.reply_to(message, "Could not forward your order. Please try again later.")
 
