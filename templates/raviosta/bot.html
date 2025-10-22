@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <style type="text/tailwindcss">
       :root {
         --primary-color: #ff694b;
@@ -117,7 +118,10 @@
                     <p id="label-location" class="text-sm font-medium">Location</p>
                     <p id="location-status" class="text-xs text-gray-500">Not shared</p>
                   </div>
-                  <button type="button" id="share-location" class="px-4 py-2 text-white rounded-full" style="background: var(--primary-color)">Share my location</button>
+                  <div class="flex items-center gap-2">
+                    <button type="button" id="open-map" class="px-4 py-2 border rounded-full">Pick on map</button>
+                    <button type="button" id="share-location" class="px-4 py-2 text-white rounded-full" style="background: var(--primary-color)">Share my location</button>
+                  </div>
                 </div>
               </div>
 
@@ -148,6 +152,20 @@
           <h3 id="success-title" class="text-xl font-bold mb-2">Order Placed!</h3>
           <p id="success-msg" class="mb-6 text-gray-600">We received your order. Thank you.</p>
           <button id="close-success" class="w-full px-6 py-3 text-white rounded-xl font-bold" style="background: var(--primary-color)">OK</button>
+        </div>
+      </div>
+      <!-- Map Picker Modal -->
+      <div id="map-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+          <div class="p-4 flex justify-between items-center border-b">
+            <h3 id="map-title" class="text-lg font-bold">Pick Location</h3>
+            <button id="close-map" class="text-gray-500"><span class="material-symbols-outlined">close</span></button>
+          </div>
+          <div id="map" class="w-full" style="height: 320px"></div>
+          <div class="p-4 flex items-center justify-between border-t">
+            <span id="map-selected" class="text-sm text-gray-600">Tap on the map to choose a point.</span>
+            <button id="use-location" class="px-4 py-2 text-white rounded-full disabled:opacity-60" style="background: var(--primary-color)" disabled>Use this location</button>
+          </div>
         </div>
       </div>
     </div>
@@ -273,6 +291,10 @@
           order_summary: 'Order Summary',
           cancel: 'Cancel',
           place_order: 'Place Order',
+          pick_on_map: 'Pick on map',
+          pick_location_title: 'Pick Location',
+          map_tap_hint: 'Tap on the map to choose a point.',
+          use_this_location: 'Use this location',
           order_placed: 'Order Placed!',
           order_received: 'We received your order. Thank you.',
           ok: 'OK',
@@ -305,6 +327,10 @@
           order_summary: 'Buyurtma xulosasi',
           cancel: 'Bekor qilish',
           place_order: 'Buyurtma berish',
+          pick_on_map: 'Xaritadan tanlash',
+          pick_location_title: 'Manzilni tanlash',
+          map_tap_hint: 'Nuqtani tanlash uchun xaritaga bosing.',
+          use_this_location: 'Shu manzildan foydalanish',
           order_placed: 'Buyurtma qabul qilindi!',
           order_received: 'Buyurtmangiz qabul qilindi. Rahmat.',
           ok: 'OK',
@@ -337,6 +363,10 @@
           order_summary: 'Состав заказа',
           cancel: 'Отмена',
           place_order: 'Оформить',
+          pick_on_map: 'Выбрать на карте',
+          pick_location_title: 'Выбор локации',
+          map_tap_hint: 'Нажмите на карту, чтобы выбрать точку.',
+          use_this_location: 'Использовать эту локацию',
           order_placed: 'Заказ оформлен!',
           order_received: 'Мы получили ваш заказ. Спасибо.',
           ok: 'OK',
@@ -373,6 +403,7 @@
         document.getElementById('label-location').textContent = t('location');
         document.getElementById('location-status').textContent = t('not_shared');
         document.getElementById('share-location').textContent = t('share_location');
+        const openMapBtnLabel = document.getElementById('open-map'); if (openMapBtnLabel) openMapBtnLabel.textContent = t('pick_on_map');
         document.getElementById('order-summary-title').textContent = t('order_summary');
         document.getElementById('modal-total-label').textContent = t('total');
         document.getElementById('cancel-order').textContent = t('cancel');
@@ -382,6 +413,10 @@
         document.getElementById('success-title').textContent = t('order_placed');
         document.getElementById('success-msg').textContent = t('order_received');
         document.getElementById('close-success').textContent = t('ok');
+        // Map modal
+        const mapTitle = document.getElementById('map-title'); if (mapTitle) mapTitle.textContent = t('pick_location_title');
+        const mapHint = document.getElementById('map-selected'); if (mapHint) mapHint.textContent = t('map_tap_hint');
+        const useLocBtn = document.getElementById('use-location'); if (useLocBtn) useLocBtn.textContent = t('use_this_location');
       }
 
       const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
@@ -448,6 +483,14 @@
       const cartTotal = document.getElementById('cart-total');
       const locationStatus = document.getElementById('location-status');
       const shareLocationBtn = document.getElementById('share-location');
+  const openMapBtn = document.getElementById('open-map');
+  const mapModal = document.getElementById('map-modal');
+  const closeMapBtn = document.getElementById('close-map');
+  const mapSelectedEl = document.getElementById('map-selected');
+  const useLocationBtn = document.getElementById('use-location');
+  let leafletMap = null;
+  let mapMarker = null;
+  let tempSelected = null; // temp selection inside map modal
 
       // Render category buttons
       function renderCategoryButtons() {
@@ -652,6 +695,12 @@
         // Share location
         shareLocationBtn.addEventListener('click', requestLocation);
 
+  // Map picker events
+  if (openMapBtn) openMapBtn.addEventListener('click', openMapModal);
+  if (closeMapBtn) closeMapBtn.addEventListener('click', closeMapModal);
+  if (mapModal) mapModal.addEventListener('click', (e) => { if (e.target === mapModal) closeMapModal(); });
+  if (useLocationBtn) useLocationBtn.addEventListener('click', applyPickedLocation);
+
         // Submit order -> send via Telegram WebApp
         orderForm.addEventListener('submit', submitOrder);
       }
@@ -694,6 +743,74 @@
           },
           { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
         );
+      }
+
+      // Map picker (Leaflet + OSM) - load JS lazily
+      let leafletLoaded = false;
+      function loadLeafletIfNeeded(cb){
+        if (leafletLoaded || window.L) { leafletLoaded = true; cb(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        s.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+        s.crossOrigin = '';
+        s.onload = () => { leafletLoaded = true; cb(); };
+        document.head.appendChild(s);
+      }
+
+      function openMapModal(){
+        if (!mapModal) return;
+        mapModal.classList.remove('hidden'); mapModal.classList.add('flex');
+        if (mapSelectedEl) mapSelectedEl.textContent = t('map_tap_hint');
+        if (useLocationBtn) useLocationBtn.disabled = true;
+        tempSelected = userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : null;
+        loadLeafletIfNeeded(initLeafletMap);
+      }
+
+      function closeMapModal(){ if (!mapModal) return; mapModal.classList.add('hidden'); mapModal.classList.remove('flex'); }
+
+      function initLeafletMap(){
+        const defaultCenter = tempSelected || { lat: 41.2995, lng: 69.2401 }; // Tashkent
+        if (!leafletMap) {
+          leafletMap = L.map('map', { attributionControl: true }).setView([defaultCenter.lat, defaultCenter.lng], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(leafletMap);
+          leafletMap.on('click', onMapClick);
+        } else {
+          leafletMap.setView([defaultCenter.lat, defaultCenter.lng], leafletMap.getZoom() || 13);
+          setTimeout(() => leafletMap.invalidateSize(), 50);
+        }
+        if (tempSelected) placeOrMoveMarker(tempSelected.lat, tempSelected.lng);
+      }
+
+      function onMapClick(e){
+        const { lat, lng } = e.latlng;
+        tempSelected = { lat, lng };
+        placeOrMoveMarker(lat, lng);
+        if (mapSelectedEl) mapSelectedEl.textContent = `Selected: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        if (useLocationBtn) useLocationBtn.disabled = false;
+      }
+
+      function placeOrMoveMarker(lat, lng){
+        if (!leafletMap) return;
+        if (mapMarker) { mapMarker.setLatLng([lat, lng]); }
+        else {
+          mapMarker = L.marker([lat, lng], { draggable: true }).addTo(leafletMap);
+          mapMarker.on('dragend', () => {
+            const p = mapMarker.getLatLng();
+            tempSelected = { lat: p.lat, lng: p.lng };
+            if (mapSelectedEl) mapSelectedEl.textContent = `Selected: ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
+            if (useLocationBtn) useLocationBtn.disabled = false;
+          });
+        }
+      }
+
+      function applyPickedLocation(){
+        if (!tempSelected) return;
+        userLocation = { lat: tempSelected.lat, lng: tempSelected.lng, accuracy: 50 };
+        if (locationStatus) locationStatus.textContent = `Shared: ${userLocation.lat.toFixed(5)}, ${userLocation.lng.toFixed(5)}`;
+        closeMapModal();
       }
 
       function safePhone(v) { return String(v || '').trim(); }
