@@ -249,8 +249,8 @@
           const code = (tg?.initDataUnsafe?.user?.language_code || '').toLowerCase();
           if (code.startsWith('uz')) return 'uzbek';
           if (code.startsWith('ru')) return 'russian';
-          return 'english';
-        } catch { return 'english'; }
+          return 'russian';
+        } catch { return 'russian'; }
       }
       let currentLang = detectInitialLang();
   const FALLBACK_IMG = "{% static 'raviosta/ravioli.svg' %}";

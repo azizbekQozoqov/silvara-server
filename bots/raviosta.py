@@ -14,7 +14,7 @@ logger = logging.getLogger('silvara')
 I18N = {
     'english': {
         'start': (
-            "Welcome to Raviosta Kitchen!\n"
+            "Welcome to Raviosta!\n"
             "Open the menu to browse dishes and place your order."
         ),
         'open_menu': "Open Menu",
@@ -25,7 +25,7 @@ I18N = {
     },
     'uzbek': {
         'start': (
-            "Raviosta Kitchen-ga xush kelibsiz!\n"
+            "Raviosta ga xush kelibsiz!\n"
             "Menyuni ochib taomlarni ko'ring va buyurtma bering."
         ),
         'open_menu': "Menyuni ochish",
@@ -36,7 +36,7 @@ I18N = {
     },
     'russian': {
         'start': (
-            "Добро пожаловать в Raviosta Kitchen!\n"
+            "Добро пожаловать в Raviosta\n"
             "Откройте меню, чтобы выбрать блюда и оформить заказ."
         ),
         'open_menu': "Открыть меню",
@@ -70,7 +70,7 @@ def _get_lang(message: types.Message) -> str:
         return 'uzbek'
     if code.startswith('ru'):
         return 'russian'
-    return 'english'
+    return 'russian'
 
 def _t(lang: str, key: str) -> str:
     return I18N.get(lang, I18N['english']).get(key, I18N['english'].get(key, key))
