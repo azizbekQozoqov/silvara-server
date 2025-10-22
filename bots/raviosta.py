@@ -47,7 +47,24 @@ I18N = {
     },
 }
 
+# Display names for languages (kept recognizable across locales)
+LANG_DISPLAY = {
+    'english': 'English',
+    'uzbek': "O‘zbek",
+    'russian': 'Русский',
+}
+
+# In-memory per-user language preferences (user_id -> lang key)
+USER_LANG: dict[int, str] = {}
+
 def _get_lang(message: types.Message) -> str:
+    # Prefer explicit user preference if set
+    try:
+        uid = getattr(getattr(message, 'from_user', None), 'id', None)
+        if uid and uid in USER_LANG:
+            return USER_LANG[uid]
+    except Exception:
+        pass
     code = (getattr(getattr(message, 'from_user', None), 'language_code', '') or '').lower()
     if code.startswith('uz'):
         return 'uzbek'
@@ -81,6 +98,86 @@ def start(message):
         bot.send_message(message.chat.id, text, reply_markup=kb)
     else:
         bot.send_message(message.chat.id, text)
+
+
+# --- Language selection (/lang) ---
+def _normalize_lang_arg(arg: str | None) -> str | None:
+    if not arg:
+        return None
+    a = arg.strip().lower()
+    if a in ('en', 'eng', 'english'):
+        return 'english'
+    if a in ('uz', 'uzb', 'uzbek', "o'z", 'oz', 'ozb'):
+        return 'uzbek'
+    if a in ('ru', 'rus', 'russian', 'рус', 'русский'):
+        return 'russian'
+    return None
+
+
+@bot.message_handler(commands=['lang'])
+def cmd_lang(message: types.Message):
+    lang = _get_lang(message)
+    # Allow parameter: /lang en|ru|uz
+    parts = (message.text or '').split()
+    if len(parts) > 1:
+        want = _normalize_lang_arg(parts[1])
+        if want:
+            USER_LANG[getattr(message.from_user, 'id', 0)] = want
+            bot.reply_to(message, _t(lang, 'start').split('\n')[0] + f"\n" + _lang_set_msg(lang, want))
+            return
+        # Fallthrough to keyboard if invalid param
+
+    # Show inline keyboard to select language
+    prompt = _choose_lang_prompt(lang)
+    kb = types.InlineKeyboardMarkup()
+    kb.add(
+        types.InlineKeyboardButton(LANG_DISPLAY['uzbek'], callback_data='set_lang:uzbek'),
+        types.InlineKeyboardButton(LANG_DISPLAY['russian'], callback_data='set_lang:russian'),
+        types.InlineKeyboardButton(LANG_DISPLAY['english'], callback_data='set_lang:english'),
+    )
+    bot.send_message(message.chat.id, prompt, reply_markup=kb)
+
+
+def _choose_lang_prompt(lang: str) -> str:
+    if lang == 'uzbek':
+        return "Tilni tanlang:"
+    if lang == 'russian':
+        return "Выберите язык:"
+    return "Choose your language:"
+
+
+def _lang_set_msg(user_lang: str, new_lang: str) -> str:
+    # user_lang: language to render the message in
+    name = LANG_DISPLAY.get(new_lang, new_lang)
+    if user_lang == 'uzbek':
+        return f"Til {name} qilib o‘rnatildi."
+    if user_lang == 'russian':
+        return f"Язык изменён на {name}."
+    return f"Language set to {name}."
+
+
+@bot.callback_query_handler(func=lambda c: isinstance(c.data, str) and c.data.startswith('set_lang:'))
+def cb_set_lang(call: types.CallbackQuery):
+    try:
+        _, val = (call.data or '').split(':', 1)
+    except Exception:
+        return
+    if val not in ('english', 'uzbek', 'russian'):
+        return
+    uid = getattr(getattr(call, 'from_user', None), 'id', None)
+    if uid:
+        USER_LANG[uid] = val
+    # Render confirmation using the newly selected language for consistency
+    msg = _lang_set_msg(val, val)
+    try:
+        bot.answer_callback_query(call.id)
+    except Exception:
+        pass
+    # Edit message if possible, otherwise send a new one
+    try:
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=msg)
+    except Exception:
+        bot.send_message(call.message.chat.id, msg)
 
 
 def _format_order_text(order: dict) -> str:
