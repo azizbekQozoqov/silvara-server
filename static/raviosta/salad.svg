@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="32" fill="#E7FFE6"/>
-  <rect x="96" y="260" width="320" height="120" rx="24" fill="#95D5B2"/>
-  <circle cx="206" cy="300" r="18" fill="#74C69D"/>
-  <circle cx="256" cy="310" r="14" fill="#52B788"/>
-  <circle cx="306" cy="300" r="18" fill="#74C69D"/>
-  <text x="256" y="460" text-anchor="middle" font-family="Poppins, Arial" font-size="28" fill="#FF694B">Salad</text>
-</svg>
